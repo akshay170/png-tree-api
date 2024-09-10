@@ -1,45 +1,93 @@
 const User = require('../models/userModel');
 
+
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
 
-    if(!users){
+    if (!users) {
       console.log("users not found")
     }
-    
+
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-module.exports = { getAllUsers };
 
 //signup 
+const signUp = async (req, res) => {
 
-const signUp = async(req,res)=>{
+  const { name, email, password } = req.body
 
-  const {name,email,password} = req.body
-
-  if (!name || !email || !password) {
-    res.status(204).json({ error: "all fields are required" });
+  //  validation -not empty 
+  if ([email, name, password].some((field) => field?.trim() === "")) {
+    throw error(400, "all fields are required")
   }
 
+  //check if use already exist :name ,email
+  const existedUser = await User.findOne({
+    $or: [{ name }, { email }]
+  })
 
-  try {
-    const user = await User.create({
-      name:name,
-      email:email,
-      password:password
-    })
-
-    if(!user){
-      throw error("Error while registering the user ")
-    }
-
-    res.status(200).json({message:"user sucessfully registered",user})
-  } catch (error) {
-    res.status(500).json({ error: err.message });
+  if (existedUser) {
+    throw error(409, "User with email or name is already exist")
   }
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+  })
+
+  // remove password  field from response
+  const createdUser = await User.findById(user._id).select(
+    "-password"
+  )
+
+  if (!createdUser) {
+    throw error(500, "something Went wrong while registering a user")
+  }
+
+  return res.status(200).json( {user:createdUser, message:"User registered successfully"})
+
+
 }
+
+//login user 
+const login= async(req,res)=>{  
+  
+  
+      const {email,password}=req.body
+  
+      if(!email){
+          throw error(400,"email is required")
+      }
+  
+      //  find the user
+      const user=await User.findOne({email})
+  
+      if(!user){
+          throw error(404,"user does not exist !")
+      }
+  
+      // password check using custom method created in user model
+      const isPasswordValid = await user.isPasswordCorrect(password)
+  
+      if(!isPasswordValid){
+          throw error(401,"password does not correct !")
+      }
+  
+  
+      return res
+      .status(200)
+      .json({user:user ,message:"User LoggedIn Successfully"})
+  
+}
+  
+  
+module.exports = { getAllUsers, signUp, login };
+
+  
+
