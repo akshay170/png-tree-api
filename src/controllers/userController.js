@@ -32,7 +32,7 @@ const signUp = async (req, res) => {
   })
 
   if (existedUser) {
-    throw error(409, "User with email or name is already exist")
+    return res.status(400).json({message:"User with email or username already exist"})
   }
 
   const user = await User.create({
@@ -41,16 +41,8 @@ const signUp = async (req, res) => {
     password,
   })
 
-  // remove password  field from response
-  const createdUser = await User.findById(user._id).select(
-    "-password"
-  )
 
-  if (!createdUser) {
-    throw error(500, "something Went wrong while registering a user")
-  }
-
-  return res.status(200).json( {user:createdUser, message:"User registered successfully"})
+  return res.status(200).json( {user:user, message:"User registered successfully"})
 
 
 }
