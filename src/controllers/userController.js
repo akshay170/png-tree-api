@@ -35,10 +35,12 @@ const signUp = async (req, res) => {
     return res.status(400).json({message:"User with email or username already exist"})
   }
 
+  const hashedPassword = await bcrypt.hash(this.password, 10)
+
   const user = await User.create({
     name,
     email,
-    password,
+    password:hashedPassword,
   })
 
 
@@ -65,7 +67,7 @@ const login= async(req,res)=>{
       }
   
       // password check using custom method created in user model
-      const isPasswordValid = await user.isPasswordCorrect(password)
+      const isPasswordValid = await bcrypt.compare(password, this.password)
   
       if(!isPasswordValid){
           throw error(401,"password does not correct !")
